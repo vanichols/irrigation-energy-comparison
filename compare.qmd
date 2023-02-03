@@ -1,0 +1,174 @@
+---
+title: "compare"
+author: "Gina"
+format: html
+editor: visual
+---
+
+```{r, echo = F, messages = F}
+library(tidyverse)
+```
+
+# Introduction to irrigation energy
+
+There may
+be two sources of water:
+
+1.  surface
+
+2.  ground
+
+Ground water will have a \'head\' associated with the depth of the well. Both will have \'head\' associated
+with the pump pressure.  
+
+The main components defining the irrigation energy use are:
+
+1.  The pump pressure and, if ground water, the well depth
+
+2.  The energy source for the pumping/moving of water (diesel,
+    electricity, solar, etc.)
+
+3.  The amount of irrigation water applied
+
+# Scenario
+
+-   A flood irrigated field
+
+-   Diesel powered pump
+
+-   200 foot well
+
+-   25 PSI pump
+
+-   \$1 energy unit (to make back-calculating the amount
+    of fuel easy)
+
+-   Corn for grain
+
+-   1 acre
+
+-   20 ac-in applied per acre `0`
+
+-   The zipcode is used to auto-fill some NRCS values which we overwrite, so it shouldn\'t
+    matter what value you put in. However I put in 81428.
+
+    ```{r}
+    well_depth <- 200
+    pump_press <- 25
+    water_applied <- 20
+    ```
+
+# NRCS tool
+
+The NRCS has a tool that will estimate the energy used for irrigation: <https://ipat.sc.egov.usda.gov/Default.aspx>
+
+When using the above inputs, the estimated energy cost is \$67. I take this to mean I will have used 67 gallons of diesel:
+
+*picture is not pasting*
+
+According to Table 1 of FTM, 1 gallon of diesel contains 138,490 BTUs/gal.
+
+```{r}
+nrcs_btu <- 67 * 138490
+print(nrcs_btu)
+```
+
+This irrigation scenario requires `r format(nrcs_btu, big.mark=",", scientific=FALSE)` BTUs/ac**.** Just for ballpark estimates, Table 1 of FTM says there are 22.7 lbs of co2e per gallon of diesel (although this is from combustion of the fuel, only).
+
+```{r}
+nrcs_co2 <- 67 * 22.7
+print(nrcs_co2)
+```
+
+So this irrigation scenario releases `r format(nrcs_co2, big.mark = ",", scientific = F)` lbs co2e/ac.
+
+# FTM equations
+
+The total head, $H$ is expressed as the sum of the head from the pump pressure and the pumping depth. To calculate the head we therefore just need to do some unit conversions.
+
+First, convert the pump pressure to meters:
+
+```{r}
+# 2.31 ft head / 1 psi
+# 0.305 m head / 1 ft head
+# pump is 25 psi
+print(press_head <- pump_press  * 2.31 * 0.305)
+
+```
+
+Next, convert the pump depth to meters:
+
+```{r}
+# depth  is 200 ft
+print(depth_head <- 200 * 0.305)
+```
+
+Sum them together :
+
+```{r}
+print(head <- press_head + depth_head)
+
+```
+
+This is then used in the pumping energy equation:
+
+$$energy = \frac{H*C_{pump}*(acre-inches_{applied})*25.4 \frac{mm}{in} * (number-of-acres-in-field) * (0.404 \frac{ha}{acre})}{E_{pump}*E_{irrigation}*E_{gearhead}*E_{power-unit}}$$
+
+
+Where:
+
+$$H = head\\
+C_{pump} = 0.0979\\
+E_{pump} = 0.75\\
+E_{irrigation} = 1\\
+E_{gearhead} = 0.95\\
+E_{power-unit} = 1$$
+
+The units are very strange, and I cannot follow what is being canceled. Apparently this produces a value in MJs per field? In our case, since we have a 1 acre field:
+
+*Get constants in to R*
+
+```{r}
+# constants
+c_pump <- 0.0979
+e_pump <- 0.75
+e_irr <- 1
+e_gear <- 0.95
+e_power <- 1
+
+mm_per_in <- 25.4
+m_per_in <- mm_per_in/100
+ha_per_ac <- 0.404
+
+```
+
+*Calculate energy*
+
+```{r}
+
+print(ftm_energy_mj <- (head * c_pump * water_applied * mm_per_in * 1 * 0.404) / (e_pump * e_irr*e_gear*e_power))
+
+```
+
+There are 948 BTUs in 1 MJ
+
+```{r}
+print(ftm_btu <- ftm_energy_mj * 948)
+```
+
+According to FTM equations, this irrigation scenario requires `r format(ftm_btu, big.mark=",", scientific=FALSE)` BTUs/ac**.**
+
+If we instead use the meters to inches conversion:
+
+```{r}
+print(ftm_btu2 <- (head * c_pump * water_applied * m_per_in * 1 * 0.404) / (e_pump * e_irr*e_gear*e_power)*948)
+```
+
+As a summary:
+
+```{r}
+
+tibble(method = c("nrcs", "FTM-mm", "FTM-m"),
+       energy_BTUs_ac = c(nrcs_btu, ftm_btu, ftm_btu2)) %>% 
+  mutate_if(is.numeric, round, 0)
+```
