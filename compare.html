@@ -131,6 +131,9 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 </header>
 
+<div class="cell" data-messages="false">
+
+</div>
 <section id="introduction-to-irrigation-energy" class="level1">
 <h1>Introduction to irrigation energy</h1>
 <p>There may be two sources of water:</p>
@@ -138,7 +141,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <li><p>surface</p></li>
 <li><p>ground</p></li>
 </ol>
-<p>Ground water will have a 'head' associated with the depth of the well. Both will have 'head' associated with the pump pressure. &nbsp;</p>
+<p>Ground water will have a ‘head’ associated with the depth of the well. Both will have ‘head’ associated with the pump pressure. &nbsp;</p>
 <p>The main components defining the irrigation energy use are:</p>
 <ol type="1">
 <li><p>The pump pressure and, if ground water, the well depth</p></li>
@@ -154,89 +157,171 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <li><p>200 foot well</p></li>
 <li><p>25 PSI pump</p></li>
 <li><p>$1 energy unit (to make back-calculating the amount of fuel easy)</p></li>
-<li><p>Corn for grain</p></li>
+<li><p>Alfalfa</p></li>
 <li><p>1 acre</p></li>
-<li><p>20 ac-in applied per acre</p></li>
-<li><p>The zipcode is used to auto-fill some NRCS values which we overwrite, so it shouldn't matter what value you put in. However I put in 81428.</p></li>
+<li><p>50 ac-in applied per acre</p></li>
+<li><p>The zipcode is used to auto-fill some NRCS values which we overwrite. It doesn’t impact the calculations if you overwrite them. However I put in 93603.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>well_depth_ft <span class="ot">&lt;-</span> <span class="dv">200</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>pump_press_psi <span class="ot">&lt;-</span> <span class="dv">25</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>water_applied_in_ac <span class="ot">&lt;-</span> <span class="dv">50</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div></li>
 </ul>
 </section>
 <section id="nrcs-tool" class="level1">
 <h1>NRCS tool</h1>
 <p>The NRCS has a tool that will estimate the energy used for irrigation: <a href="https://ipat.sc.egov.usda.gov/Default.aspx" class="uri">https://ipat.sc.egov.usda.gov/Default.aspx</a></p>
 <p>When using the above inputs, the estimated energy cost is $67. I take this to mean I will have used 67 gallons of diesel:</p>
-<p><em>picture is not pasting</em></p>
-<p>According to Table 1 of FTM, 1 gallon of diesel contains 138,490 BTUs/gal.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>nrcs_btu <span class="ot">&lt;-</span> <span class="dv">67</span> <span class="sc">*</span> <span class="dv">138490</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<p>This irrigation scenario requires ’9,278,830 BTUs/ac<strong>.</strong> Just for ballpark estimates, Table 1 of FTM says there are 22.7 lbs of co2e per gallon of diesel (although this is from combustion of the fuel, only).</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="dv">67</span> <span class="sc">*</span> <span class="fl">22.7</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>nrcs_gal_dies_ac <span class="ot">&lt;-</span> <span class="dv">67</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>ac_per_ha <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">/</span><span class="fl">0.404</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>(nrcs_gal_dies_ha <span class="ot">&lt;-</span> nrcs_gal_dies_ac <span class="sc">*</span> ac_per_ha)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 1520.9</code></pre>
+<pre><code>[1] 165.8416</code></pre>
 </div>
 </div>
-<p>So this irrigation scenario releases 1,520 lbs co2e/ac.</p>
+<p>According to Table 1 of FTM, 1 gallon of diesel contains 138,490 BTUs. We can calculate the number of BTUs we used per hectare:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>btu_per_gal_dies <span class="ot">&lt;-</span> <span class="dv">138490</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>nrcs_btu_per_ha <span class="ot">&lt;-</span> nrcs_gal_dies_ha <span class="sc">*</span> btu_per_gal_dies</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="fu">prettyNum</span>(nrcs_btu_per_ha, <span class="at">big.mark =</span> <span class="st">","</span>, <span class="at">scientific =</span> F)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "22,967,401"</code></pre>
+</div>
+</div>
+<p>In the tens of millions of BTUs per hectare.</p>
+<p>Just for ballpark estimates, Table 1 of FTM says there are 22.7 lbs of co2e per gallon of diesel (although this is from combustion of the fuel, only).</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>lbsco2_per_gal_dies <span class="ot">&lt;-</span> <span class="fl">22.7</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>kg_per_lb <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">/</span><span class="fl">2.2</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>nrcs_kgco2_ha <span class="ot">&lt;-</span> nrcs_gal_dies_ac <span class="sc">*</span> ac_per_ha <span class="sc">*</span> lbsco2_per_gal_dies <span class="sc">*</span> kg_per_lb</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="fu">prettyNum</span>(nrcs_kgco2_ha, <span class="at">big.mark =</span> <span class="st">","</span>, <span class="at">scientific =</span> F)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "1,711.184"</code></pre>
+</div>
+</div>
+<p>Irrigation releases co2 on the order of Mg.</p>
 </section>
 <section id="ftm-equations" class="level1">
 <h1>FTM equations</h1>
-<p>The total head, <span class="math inline">\(H\)</span> is expressed as the sum of the head from the pump pressure and the pumping depth. To calculate the head we therefore just need to do some unit conversions.</p>
-<p>First, convert the pump pressure to meters:</p>
+<p>The total head is expressed as the sum of the head from the pump pressure and the pumping depth (Latex sucks in this environment):</p>
+<p>head [m] = pumping pressure [m] + well depth [m]</p>
+<p>To calculate the head we therefore just need to do some unit conversions.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 2.31 ft head / 1 psi</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co"># 0.305 m head / 1 ft head</span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co"># pump is 25 psi</span></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>press_head <span class="ot">&lt;-</span> <span class="dv">25</span>  <span class="sc">*</span> <span class="fl">2.31</span> <span class="sc">*</span> <span class="fl">0.305</span></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>press_head</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>m_per_psi <span class="ot">&lt;-</span> <span class="fl">0.703</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>m_per_ft <span class="ot">&lt;-</span> <span class="fl">0.305</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>pump_press_m <span class="ot">&lt;-</span> pump_press_psi <span class="sc">*</span> m_per_psi</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>well_depth_m <span class="ot">&lt;-</span> well_depth_ft <span class="sc">*</span> m_per_ft</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>head_m <span class="ot">&lt;-</span> pump_press_m <span class="sc">+</span> well_depth_m</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">round</span>(head_m, <span class="dv">0</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 17.61375</code></pre>
-</div>
-</div>
-<p>Next, convert the pump depth to meters:</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># depth  is 200 ft</span></span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>depth_head <span class="ot">&lt;-</span> <span class="dv">200</span> <span class="sc">*</span> <span class="fl">0.305</span></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>depth_head</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>[1] 61</code></pre>
-</div>
-</div>
-<p>Sum them together :</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>head <span class="ot">&lt;-</span> press_head <span class="sc">+</span> depth_head</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">round</span>(head, <span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>[1] 78.61</code></pre>
+<pre><code>[1] 79</code></pre>
 </div>
 </div>
 <p>This is then used in the pumping energy equation:</p>
-<p>$ pump energy = <span class="math display">\[energy = \frac{H*C_{pump}*(acre-inches_{applied})*25.4 \frac{mm}{in} * (number-of-acres) * (0.404 \frac{ha}{acre})}{E_{pump}*E_{irrigation}*E_{gearhead}*E_{power-unit}}\]</span></p>
+<p><span class="math display">\[energy = \frac{H*C_{pump}*(acre-inches_{applied})*25.4 \frac{mm}{in} * (number-of-acres-in-field) * (0.404 \frac{ha}{acre})}{E_{pump}*E_{irrigation}*E_{gearhead}*E_{power-unit}}\]</span></p>
 <p>Where:</p>
-<p><span class="math display">\[H = head\]</span></p>
-<p><span class="math display">\[\begin{flushleft}
-H = head\\
+<p><span class="math display">\[H = head\\
 C_{pump} = 0.0979\\
 E_{pump} = 0.75\\
 E_{irrigation} = 1\\
 E_{gearhead} = 0.95\\
-E_{power-unit} = 1\end{flushleft}\]</span></p>
-<section id="running-code" class="level2">
-<h2 class="anchored" data-anchor-id="running-code">Running Code</h2>
-<p>When you click the <strong>Render</strong> button a document will be generated that includes both content and the output of embedded code. You can embed code like this:</p>
+E_{power-unit} = 1\]</span></p>
+<p>The units are very strange, and I cannot follow what is being canceled. Apparently this produces a value in MJs per hectare? The mm per inch conversion is very strange.</p>
+<p>Constants provided by FTM (no citations):</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="dv">1</span> <span class="sc">+</span> <span class="dv">1</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>[1] 2</code></pre>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># constants, no idea of units</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>c_pump <span class="ot">&lt;-</span> <span class="fl">0.0979</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>e_pump <span class="ot">&lt;-</span> <span class="fl">0.75</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>e_irr <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>e_gear <span class="ot">&lt;-</span> <span class="fl">0.95</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>e_power <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="co"># unit conversions</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>mm_per_in <span class="ot">&lt;-</span> <span class="fl">25.4</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>m_per_in <span class="ot">&lt;-</span> mm_per_in<span class="sc">/</span><span class="dv">100</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>ha_per_ac <span class="ot">&lt;-</span> <span class="fl">0.404</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>btu_per_mj <span class="ot">&lt;-</span> <span class="fl">947.8</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-</div>
-<p>You can add options to executable code like this</p>
+<p>Let’s work through the numerator:</p>
 <div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>(num1 <span class="ot">&lt;-</span> head_m <span class="sc">*</span> c_pump <span class="sc">*</span> water_applied_in_ac <span class="sc">*</span> mm_per_in <span class="sc">*</span> ha_per_ac)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 4</code></pre>
+<pre><code>[1] 3946.864</code></pre>
 </div>
 </div>
-<p>The <code>echo: false</code> option disables the printing of code (only output is displayed).</p>
-</section>
+<p>The denominator:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>(den1 <span class="ot">&lt;-</span> e_pump <span class="sc">*</span> e_irr <span class="sc">*</span> e_gear <span class="sc">*</span> e_power)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.7125</code></pre>
+</div>
+</div>
+<p>This gives MJ/ha</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>(ftm_mj_per_ha <span class="ot">&lt;-</span> num1<span class="sc">/</span>den1)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 5539.458</code></pre>
+</div>
+</div>
+<p>Convert to BTUs per ha</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>ftm_btu_per_ha <span class="ot">&lt;-</span> ftm_mj_per_ha <span class="sc">*</span> btu_per_mj</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="fu">prettyNum</span>(ftm_btu_per_ha, <span class="at">big.mark =</span> <span class="st">","</span>, <span class="at">scientific =</span> F)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "5,250,299"</code></pre>
+</div>
+</div>
+<p>So it estimates about half the amount the NRCS does?</p>
+<p>What if we assume perfect efficiencies in the denominator?</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>ftm_btu_per_ha2 <span class="ot">&lt;-</span> num1 <span class="sc">*</span> btu_per_mj</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="fu">prettyNum</span>(ftm_btu_per_ha2, <span class="at">big.mark =</span> <span class="st">","</span>, <span class="at">scientific =</span> F)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "3,740,838"</code></pre>
+</div>
+</div>
+<p>What if we convert the amount of water into m instead of in?</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>num2 <span class="ot">&lt;-</span> head_m <span class="sc">*</span> c_pump <span class="sc">*</span> water_applied_in_ac <span class="sc">*</span> m_per_in <span class="sc">*</span> ha_per_ac</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>ftm_btu_per_ha3 <span class="ot">&lt;-</span> num2 <span class="sc">*</span> btu_per_mj</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="fu">prettyNum</span>(ftm_btu_per_ha3, <span class="at">big.mark =</span> <span class="st">","</span>, <span class="at">scientific =</span> F)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "37,408.38"</code></pre>
+</div>
+</div>
+<p>Put them in a table to compare. I don’t understand why the NRCS values are so much higher than the FTM values.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>res <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">calc =</span> <span class="fu">c</span>(<span class="st">"nrcs"</span>, </span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>                <span class="st">"ftm mm conv"</span>, </span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>                <span class="st">"ftm mm conv 100% eff"</span>, </span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>                <span class="st">"ftm m conv 100% eff"</span>),</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>       <span class="at">btu_per_ha =</span> <span class="fu">c</span>(nrcs_btu_per_ha,</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>                      ftm_btu_per_ha,</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>                      ftm_btu_per_ha2,</span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>                      ftm_btu_per_ha3)) <span class="sc">%&gt;%</span> </span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">gal_dies_ha =</span> btu_per_ha <span class="sc">*</span> <span class="dv">1</span><span class="sc">/</span>btu_per_gal_dies,</span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>         <span class="at">gal_dies_ac =</span> gal_dies_ha <span class="sc">*</span> <span class="dv">1</span><span class="sc">/</span>ac_per_ha) <span class="sc">%&gt;%</span> </span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate_if</span>(is.numeric, round, <span class="dv">0</span>)</span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>res</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 4 × 4
+  calc                 btu_per_ha gal_dies_ha gal_dies_ac
+  &lt;chr&gt;                     &lt;dbl&gt;       &lt;dbl&gt;       &lt;dbl&gt;
+1 nrcs                   22967401         166          67
+2 ftm mm conv             5250299          38          15
+3 ftm mm conv 100% eff    3740838          27          11
+4 ftm m conv 100% eff       37408           0           0</code></pre>
+</div>
+</div>
 </section>
 
 </main>

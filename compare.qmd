@@ -6,27 +6,28 @@ editor: visual
 ---
 
 ```{r, echo = F, messages = F}
-library(tidyverse)
+rm(list = ls())
+suppressPackageStartupMessages(
+  library(tidyverse)
+)
+
 ```
 
 # Introduction to irrigation energy
 
-There may
-be two sources of water:
+There may be two sources of water:
 
 1.  surface
 
 2.  ground
 
-Ground water will have a \'head\' associated with the depth of the well. Both will have \'head\' associated
-with the pump pressure.  
+Ground water will have a 'head' associated with the depth of the well. Both will have 'head' associated with the pump pressure.  
 
 The main components defining the irrigation energy use are:
 
 1.  The pump pressure and, if ground water, the well depth
 
-2.  The energy source for the pumping/moving of water (diesel,
-    electricity, solar, etc.)
+2.  The energy source for the pumping/moving of water (diesel, electricity, solar, etc.)
 
 3.  The amount of irrigation water applied
 
@@ -40,22 +41,20 @@ The main components defining the irrigation energy use are:
 
 -   25 PSI pump
 
--   \$1 energy unit (to make back-calculating the amount
-    of fuel easy)
+-   \$1 energy unit (to make back-calculating the amount of fuel easy)
 
--   Corn for grain
+-   Alfalfa
 
 -   1 acre
 
--   20 ac-in applied per acre `0`
+-   50 ac-in applied per acre
 
--   The zipcode is used to auto-fill some NRCS values which we overwrite, so it shouldn\'t
-    matter what value you put in. However I put in 81428.
+-   The zipcode is used to auto-fill some NRCS values which we overwrite. It doesn't impact the calculations if you overwrite them. However I put in 93603.
 
     ```{r}
-    well_depth <- 200
-    pump_press <- 25
-    water_applied <- 20
+    well_depth_ft <- 200
+    pump_press_psi <- 25
+    water_applied_in_ac <- 50
     ```
 
 # NRCS tool
@@ -64,56 +63,61 @@ The NRCS has a tool that will estimate the energy used for irrigation: <https://
 
 When using the above inputs, the estimated energy cost is \$67. I take this to mean I will have used 67 gallons of diesel:
 
-*picture is not pasting*
-
-According to Table 1 of FTM, 1 gallon of diesel contains 138,490 BTUs/gal.
-
 ```{r}
-nrcs_btu <- 67 * 138490
-print(nrcs_btu)
+nrcs_gal_dies_ac <- 67
+
+ac_per_ha <- 1/0.404
+
+(nrcs_gal_dies_ha <- nrcs_gal_dies_ac * ac_per_ha)
 ```
 
-This irrigation scenario requires `r format(nrcs_btu, big.mark=",", scientific=FALSE)` BTUs/ac**.** Just for ballpark estimates, Table 1 of FTM says there are 22.7 lbs of co2e per gallon of diesel (although this is from combustion of the fuel, only).
+According to Table 1 of FTM, 1 gallon of diesel contains 138,490 BTUs. We can calculate the number of BTUs we used per hectare:
 
 ```{r}
-nrcs_co2 <- 67 * 22.7
-print(nrcs_co2)
+btu_per_gal_dies <- 138490
+
+nrcs_btu_per_ha <- nrcs_gal_dies_ha * btu_per_gal_dies
+
+prettyNum(nrcs_btu_per_ha, big.mark = ",", scientific = F)
 ```
 
-So this irrigation scenario releases `r format(nrcs_co2, big.mark = ",", scientific = F)` lbs co2e/ac.
+In the tens of millions of BTUs per hectare.
+
+Just for ballpark estimates, Table 1 of FTM says there are 22.7 lbs of co2e per gallon of diesel (although this is from combustion of the fuel, only).
+
+```{r}
+lbsco2_per_gal_dies <- 22.7
+kg_per_lb <- 1/2.2
+
+nrcs_kgco2_ha <- nrcs_gal_dies_ac * ac_per_ha * lbsco2_per_gal_dies * kg_per_lb
+
+prettyNum(nrcs_kgco2_ha, big.mark = ",", scientific = F)
+```
+
+Irrigation releases co2 on the order of Mg.
 
 # FTM equations
 
-The total head, $H$ is expressed as the sum of the head from the pump pressure and the pumping depth. To calculate the head we therefore just need to do some unit conversions.
+The total head is expressed as the sum of the head from the pump pressure and the pumping depth (Latex sucks in this environment):
 
-First, convert the pump pressure to meters:
+head \[m\] = pumping pressure \[m\] + well depth \[m\]
 
-```{r}
-# 2.31 ft head / 1 psi
-# 0.305 m head / 1 ft head
-# pump is 25 psi
-print(press_head <- pump_press  * 2.31 * 0.305)
-
-```
-
-Next, convert the pump depth to meters:
+To calculate the head we therefore just need to do some unit conversions.
 
 ```{r}
-# depth  is 200 ft
-print(depth_head <- 200 * 0.305)
-```
+m_per_psi <- 0.703
+m_per_ft <- 0.305
 
-Sum them together :
+pump_press_m <- pump_press_psi * m_per_psi
+well_depth_m <- well_depth_ft * m_per_ft
 
-```{r}
-print(head <- press_head + depth_head)
-
+head_m <- pump_press_m + well_depth_m
+print(round(head_m, 0))
 ```
 
 This is then used in the pumping energy equation:
 
 $$energy = \frac{H*C_{pump}*(acre-inches_{applied})*25.4 \frac{mm}{in} * (number-of-acres-in-field) * (0.404 \frac{ha}{acre})}{E_{pump}*E_{irrigation}*E_{gearhead}*E_{power-unit}}$$
-
 
 Where:
 
@@ -124,51 +128,83 @@ E_{irrigation} = 1\\
 E_{gearhead} = 0.95\\
 E_{power-unit} = 1$$
 
-The units are very strange, and I cannot follow what is being canceled. Apparently this produces a value in MJs per field? In our case, since we have a 1 acre field:
+The units are very strange, and I cannot follow what is being canceled. Apparently this produces a value in MJs per hectare? The mm per inch conversion is very strange.
 
-*Get constants in to R*
+Constants provided by FTM (no citations):
 
 ```{r}
-# constants
+# constants, no idea of units
 c_pump <- 0.0979
 e_pump <- 0.75
 e_irr <- 1
 e_gear <- 0.95
 e_power <- 1
 
+# unit conversions
 mm_per_in <- 25.4
 m_per_in <- mm_per_in/100
 ha_per_ac <- 0.404
+btu_per_mj <- 947.8
 
 ```
 
-*Calculate energy*
+Let's work through the numerator:
 
 ```{r}
-
-print(ftm_energy_mj <- (head * c_pump * water_applied * mm_per_in * 1 * 0.404) / (e_pump * e_irr*e_gear*e_power))
+(num1 <- head_m * c_pump * water_applied_in_ac * mm_per_in * ha_per_ac)
 
 ```
 
-There are 948 BTUs in 1 MJ
+The denominator:
 
 ```{r}
-print(ftm_btu <- ftm_energy_mj * 948)
+(den1 <- e_pump * e_irr * e_gear * e_power)
 ```
 
-According to FTM equations, this irrigation scenario requires `r format(ftm_btu, big.mark=",", scientific=FALSE)` BTUs/ac**.**
-
-If we instead use the meters to inches conversion:
+This gives MJ/ha
 
 ```{r}
-print(ftm_btu2 <- (head * c_pump * water_applied * m_per_in * 1 * 0.404) / (e_pump * e_irr*e_gear*e_power)*948)
+(ftm_mj_per_ha <- num1/den1)
+
 ```
 
-As a summary:
+Convert to BTUs per ha
 
 ```{r}
+ftm_btu_per_ha <- ftm_mj_per_ha * btu_per_mj
+prettyNum(ftm_btu_per_ha, big.mark = ",", scientific = F)
+```
 
-tibble(method = c("nrcs", "FTM-mm", "FTM-m"),
-       energy_BTUs_ac = c(nrcs_btu, ftm_btu, ftm_btu2)) %>% 
+So it estimates about half the amount the NRCS does?
+
+What if we assume perfect efficiencies in the denominator?
+
+```{r}
+ftm_btu_per_ha2 <- num1 * btu_per_mj
+prettyNum(ftm_btu_per_ha2, big.mark = ",", scientific = F)
+```
+
+What if we convert the amount of water into m instead of in?
+
+```{r}
+num2 <- head_m * c_pump * water_applied_in_ac * m_per_in * ha_per_ac
+ftm_btu_per_ha3 <- num2 * btu_per_mj
+prettyNum(ftm_btu_per_ha3, big.mark = ",", scientific = F)
+```
+
+Put them in a table to compare. I don't understand why the NRCS values are so much higher than the FTM values.
+
+```{r}
+res <- tibble(calc = c("nrcs", 
+                "ftm mm conv", 
+                "ftm mm conv 100% eff", 
+                "ftm m conv 100% eff"),
+       btu_per_ha = c(nrcs_btu_per_ha,
+                      ftm_btu_per_ha,
+                      ftm_btu_per_ha2,
+                      ftm_btu_per_ha3)) %>% 
+  mutate(gal_dies_ha = btu_per_ha * 1/btu_per_gal_dies,
+         gal_dies_ac = gal_dies_ha * 1/ac_per_ha) %>% 
   mutate_if(is.numeric, round, 0)
+res
 ```
