@@ -1,7 +1,9 @@
 ---
 title: "compare"
 author: "Gina"
-format: html
+format: 
+  html: default
+  gfm: default
 editor: visual
 ---
 
