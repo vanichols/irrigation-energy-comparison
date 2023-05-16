@@ -40,7 +40,7 @@ The main components defining the irrigation energy use are:
 
 -   Diesel powered pump
 
--   200 foot well
+-   150 foot well
 
 -   25 PSI pump
 
@@ -50,7 +50,7 @@ The main components defining the irrigation energy use are:
 
 -   1 acre
 
--   50 ac-in applied per acre
+-   64 ac-in applied per acre
 
     ```{r}
     well_depth_ft <- 150
@@ -67,7 +67,7 @@ head \[m\] = pumping pressure \[m\] + well depth \[m\]
 To calculate the head we therefore just need to do some unit conversions.
 
 ```{r}
-pump_press_m <- pump_press_psi * m_per_psi
+pump_press_m <- pump_press_psi * mhead_per_psi
 well_depth_m <- well_depth_ft * m_per_ft
 
 head_m <- pump_press_m + well_depth_m
@@ -118,3 +118,7 @@ The Field Calculator gives 5,436,395 BTU/acre. So you shouldn't do the conversio
 ![](images/image-640204150.png)
 
 ![](images/image-1316203943.png)
+
+# NRCS
+
+https://ipat.sc.egov.usda.gov/Default.aspx
